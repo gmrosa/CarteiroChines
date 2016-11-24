@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 /**
  * @author Guilherme Murilo da Rosa & Plamedi Luzolo Lusembo
@@ -27,14 +27,18 @@ public class CarteiroChines {
     public static void main(String[] args) {
 	// XXX Usar infinito quando não houver ligação entre vertices, assim é possível utilizar arestas com custo negativo
 	int[][] matriz = { //
-		{ 0, 12, 4, INFINITO, INFINITO, INFINITO, 3, INFINITO }, //
-		{ 12, 0, 6, 10, INFINITO, 19, 3, INFINITO }, //
-		{ 4, 6, 0, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, //
-		{ INFINITO, 10, INFINITO, 0, INFINITO, 7, INFINITO, INFINITO }, //
-		{ INFINITO, INFINITO, INFINITO, INFINITO, 0, 8, 6, 2 }, //
-		{ INFINITO, 19, INFINITO, 7, 8, 0, 7, 3 }, //
-		{ 3, 3, INFINITO, INFINITO, 6, 7, 0, INFINITO }, //
-		{ INFINITO, INFINITO, INFINITO, INFINITO, 2, 3, INFINITO, 0 }, //
+		/* A */{ 0, 8, INFINITO, INFINITO, INFINITO, 11, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, // A
+		/* B */{ 8, 0, 3, INFINITO, INFINITO, 13, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, // B
+		/* C */{ INFINITO, 3, 0, 9, INFINITO, INFINITO, INFINITO, 14, INFINITO, INFINITO, INFINITO, INFINITO }, // C
+		/* D */{ INFINITO, INFINITO, 9, 0, 2, INFINITO, INFINITO, INFINITO, 15, INFINITO, INFINITO, INFINITO }, // D
+		/* E */{ INFINITO, INFINITO, INFINITO, 2, 0, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, 16 }, // E
+		/* F */{ 11, 13, INFINITO, INFINITO, INFINITO, 0, 4, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, // F
+		/* G */{ INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, 4, 0, 5, INFINITO, 12, INFINITO, INFINITO }, // G
+		/* H */{ INFINITO, INFINITO, 14, INFINITO, INFINITO, INFINITO, 5, 0, 1, INFINITO, INFINITO, INFINITO }, // H
+		/* I */{ INFINITO, INFINITO, INFINITO, 15, INFINITO, INFINITO, INFINITO, 1, 0, INFINITO, 7, INFINITO }, // I
+		/* J */{ INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, 12, INFINITO, INFINITO, 0, 6, INFINITO }, // J
+		/* K */{ INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, 7, 6, 0, 10 }, // K
+		/* L */{ INFINITO, INFINITO, INFINITO, INFINITO, 16, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, 10, 0 }, // L
 	};
 	CarteiroChines carteiroChines = new CarteiroChines(matriz);
 	carteiroChines.executar();
@@ -45,7 +49,7 @@ public class CarteiroChines {
 	    tamanho = matriz.length;
 	    if (tamanho == matriz[0].length) {
 		this.matriz = matriz;
-		criarMatriz();
+		criarGrafo();
 		if (temVerticesIsolados()) {
 		    throw new IllegalArgumentException("O grafo não pode ser dirigido ou ter vertices isolados.");
 		} else if (!ehConexo(grafo)) {
@@ -59,7 +63,7 @@ public class CarteiroChines {
 	}
     }
 
-    private void criarMatriz() {
+    private void criarGrafo() {
 	for (int i = 0; i < tamanho; i++) {
 	    Vertice vOrigem = new Vertice(i);
 	    grafo.addVertice(vOrigem);
@@ -240,12 +244,26 @@ public class CarteiroChines {
     private void removerAresta(Grafo grafo, Aresta aresta) {
 	// A->B
 	if (grafo.vertices.containsKey(aresta.vOrigem.nome)) {
-	    grafo.vertices.get(aresta.vOrigem.nome).arestas.removeIf(a -> a.equals(aresta));
+	    for (int i = 0; i < grafo.vertices.get(aresta.vOrigem.nome).arestas.size(); i++) {
+		Aresta a = grafo.vertices.get(aresta.vOrigem.nome).arestas.get(i);
+		if (a.equals(aresta)) {
+		    // Remove somente o primeiro
+		    grafo.vertices.get(aresta.vOrigem.nome).arestas.remove(i);
+		    break;
+		}
+	    }
 	}
 	// B->A
 	Aresta arestaInversa = aresta.getArestaDuplicada();
 	if (grafo.vertices.containsKey(arestaInversa.vOrigem.nome)) {
-	    grafo.vertices.get(arestaInversa.vOrigem.nome).arestas.removeIf(a -> a.equals(arestaInversa));
+	    for (int i = 0; i < grafo.vertices.get(arestaInversa.vOrigem.nome).arestas.size(); i++) {
+		Aresta a = grafo.vertices.get(arestaInversa.vOrigem.nome).arestas.get(i);
+		if (a.equals(arestaInversa)) {
+		    // Remove somente o primeiro
+		    grafo.vertices.get(arestaInversa.vOrigem.nome).arestas.remove(i);
+		    break;
+		}
+	    }
 	}
     }
 
@@ -253,18 +271,27 @@ public class CarteiroChines {
 	private Grafo grafo;
 
 	public CiclosDisjuntos(Grafo grafo) {
-	    super();
 	    this.grafo = grafo;
 	}
 
 	private Map<Integer, Set<Character>> get() {
 	    Map<Integer, Set<Character>> conjuntosDisjuntos = new HashMap<>();
+	    int i = 0;
 	    for (Vertice vertice : grafo) {
 		if (!vertice.arestas.isEmpty()) {
 		    for (Aresta aresta : vertice) {
 			addAresta(conjuntosDisjuntos, aresta);
 		    }
+		} else {
+		    // O vértice de origem não pode estar isolado, senão o grafo fica desconexo
+		    if (i == 0) {
+			// Vértice isolado
+			Set<Character> conjunto = new LinkedHashSet<>();
+			conjunto.add(vertice.nome);
+			conjuntosDisjuntos.put(conjuntosDisjuntos.size() + 1, conjunto);
+		    }
 		}
+		i++;
 	    }
 	    return conjuntosDisjuntos;
 	}
@@ -273,19 +300,17 @@ public class CarteiroChines {
 	    if (conjuntosDisjuntos.isEmpty()) {
 		addConjunto(conjuntosDisjuntos, aresta);
 	    } else {
-		Stream<Entry<Integer, Set<Character>>> filter = conjuntosDisjuntos.entrySet().stream()
-			.filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
-		long count = filter.count();
-		if (count == 2) {
-		    filter = conjuntosDisjuntos.entrySet().stream().filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
-		    Iterator<Entry<Integer, Set<Character>>> iterator = filter.iterator();
+		Map<Integer, Set<Character>> conjuntos = conjuntosDisjuntos.entrySet().stream()
+			.filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome))
+			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		if (conjuntos.size() == 2) {
+		    Iterator<Entry<Integer, Set<Character>>> iterator = conjuntos.entrySet().iterator();
 		    Entry<Integer, Set<Character>> e1 = iterator.next();
 		    Entry<Integer, Set<Character>> e2 = iterator.next();
 		    e1.getValue().addAll(e2.getValue());
 		    conjuntosDisjuntos.remove(e2.getKey());
-		} else if (count == 1) {
-		    filter = conjuntosDisjuntos.entrySet().stream().filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
-		    Set<Character> c = filter.iterator().next().getValue();
+		} else if (conjuntos.size() == 1) {
+		    Set<Character> c = conjuntos.values().iterator().next();
 		    if (c.contains(aresta.vOrigem.nome)) {
 			c.add(aresta.vDestino.nome);
 		    } else if (c.contains(aresta.vDestino.nome)) {
@@ -667,7 +692,7 @@ public class CarteiroChines {
 	 */
 	@Override
 	public String toString() {
-	    return "[" + arestas + "]";
+	    return "[" + nome + " {" + arestas + "}]";
 	}
 
     }
