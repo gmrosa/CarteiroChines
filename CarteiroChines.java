@@ -25,36 +25,17 @@ public class CarteiroChines {
     private Grafo grafo = new Grafo();
 
     public static void main(String[] args) {
-	// XXX Usar infinito quando não houver ligação entre vertices
+	// XXX Usar infinito quando não houver ligação entre vertices, assim é possível utilizar arestas com custo negativo
 	int[][] matriz = { //
-		{ 0, 9, 10, INFINITO, INFINITO, 6 }, //
-		{ 9, 0, 5, INFINITO, INFINITO, INFINITO }, //
-		{ 10, 5, 0, 5, INFINITO, 14 }, //
-		{ INFINITO, INFINITO, 5, 0, 3, 8 }, //
-		{ INFINITO, INFINITO, INFINITO, 3, 0, 4 }, //
-		{ 6, INFINITO, 14, 8, 4, 0 }, //
+		{ 0, 12, 4, INFINITO, INFINITO, INFINITO, 3, INFINITO }, //
+		{ 12, 0, 6, 10, INFINITO, 19, 3, INFINITO }, //
+		{ 4, 6, 0, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, //
+		{ INFINITO, 10, INFINITO, 0, INFINITO, 7, INFINITO, INFINITO }, //
+		{ INFINITO, INFINITO, INFINITO, INFINITO, 0, 8, 6, 2 }, //
+		{ INFINITO, 19, INFINITO, 7, 8, 0, 7, 3 }, //
+		{ 3, 3, INFINITO, INFINITO, 6, 7, 0, INFINITO }, //
+		{ INFINITO, INFINITO, INFINITO, INFINITO, 2, 3, INFINITO, 0 }, //
 	};
-	// int[][] matriz = { //
-	// { 0, 12, 4, INFINITO, INFINITO, INFINITO, 3, INFINITO }, //
-	// { 12, 0, 6, 10, INFINITO, 19, 3, INFINITO }, //
-	// { 4, 6, 0, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, //
-	// { INFINITO, 10, INFINITO, 0, INFINITO, 7, INFINITO, INFINITO }, //
-	// { INFINITO, INFINITO, INFINITO, INFINITO, 0, 8, 6, 2 }, //
-	// { INFINITO, 19, INFINITO, 7, 8, 0, 7, 3 }, //
-	// { 3, 3, INFINITO, INFINITO, 6, 7, 0, INFINITO }, //
-	// { INFINITO, INFINITO, INFINITO, INFINITO, 2, 3, INFINITO, 0 }, //
-	// };
-	// int[][] matriz = { //
-	// { 0, 12, 4, INFINITO, INFINITO, INFINITO, 3, INFINITO }, //
-	// { 12, 0, 6, 10, INFINITO, 19, 3, INFINITO }, //
-	// { 4, 6, 0, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, //
-	// { INFINITO, 10, INFINITO, 0, INFINITO, 7, INFINITO, INFINITO }, //
-	// { INFINITO, INFINITO, INFINITO, INFINITO, 0, 8, 6, 2 }, //
-	// { INFINITO, 19, INFINITO, 7, 8, 0, 7, 3 }, //
-	// { INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO, INFINITO }, //
-	// { INFINITO, INFINITO, INFINITO, INFINITO, 2, 3, INFINITO, 0 }, //
-	// };
-
 	CarteiroChines carteiroChines = new CarteiroChines(matriz);
 	carteiroChines.executar();
     }
@@ -65,8 +46,10 @@ public class CarteiroChines {
 	    if (tamanho == matriz[0].length) {
 		this.matriz = matriz;
 		criarMatriz();
-		if (grafoEhDirigido()) {
-		    throw new IllegalArgumentException("O grafo não pode ser dirigido.");
+		if (temVerticesIsolados()) {
+		    throw new IllegalArgumentException("O grafo não pode ser dirigido ou ter vertices isolados.");
+		} else if (!ehConexo(grafo)) {
+		    throw new IllegalArgumentException("O grafo não é conexo.");
 		}
 	    } else {
 		throw new IllegalArgumentException("A matriz deve ser uma matriz quadrada.");
@@ -92,7 +75,7 @@ public class CarteiroChines {
 	}
     }
 
-    private boolean grafoEhDirigido() {
+    private boolean temVerticesIsolados() {
 	Set<Character> vertices = new HashSet<>();
 	for (Vertice vertice : grafo) {
 	    if (!vertice.arestas.isEmpty()) {
@@ -153,7 +136,7 @@ public class CarteiroChines {
     }
 
     private void duplicarCaminhosDeMenorCusto() {
-	ConjuntoDeCaminhos permutacaoMenorCusto = getPermutacaoMenorCusto();
+	ConjuntoDeCaminhosDijkstra permutacaoMenorCusto = getPermutacaoMenorCusto();
 	for (CaminhoDijkstra caminho : permutacaoMenorCusto) {
 	    for (Aresta aresta : caminho.arestas) {
 		grafo.duplicarAresta(aresta);
@@ -161,10 +144,10 @@ public class CarteiroChines {
 	}
     }
 
-    private ConjuntoDeCaminhos getPermutacaoMenorCusto() {
+    private ConjuntoDeCaminhosDijkstra getPermutacaoMenorCusto() {
 	int custo = INFINITO;
-	ConjuntoDeCaminhos resultado = null;
-	for (ConjuntoDeCaminhos caminho : getPermutacaoDosCaminhos()) {
+	ConjuntoDeCaminhosDijkstra resultado = null;
+	for (ConjuntoDeCaminhosDijkstra caminho : getPermutacaoDosCaminhos()) {
 	    if (caminho.custoTotal < custo) {
 		custo = caminho.custoTotal;
 		resultado = caminho;
@@ -173,14 +156,14 @@ public class CarteiroChines {
 	return resultado;
     }
 
-    private List<ConjuntoDeCaminhos> getPermutacaoDosCaminhos() {
+    private List<ConjuntoDeCaminhosDijkstra> getPermutacaoDosCaminhos() {
 	Map<Aresta, CaminhoDijkstra> dijkstrasTemp = new LinkedHashMap<>(dijkstras);
-	List<ConjuntoDeCaminhos> caminhos = new ArrayList<>();
+	List<ConjuntoDeCaminhosDijkstra> caminhos = new ArrayList<>();
 	Set<Vertice> verticesGrauImparTemp = new LinkedHashSet<>();
 
 	while (!dijkstrasTemp.isEmpty()) {
 	    verticesGrauImparTemp.addAll(verticesGrauImpar);
-	    ConjuntoDeCaminhos conjuntoDeCaminhos = new ConjuntoDeCaminhos();
+	    ConjuntoDeCaminhosDijkstra conjuntoDeCaminhos = new ConjuntoDeCaminhosDijkstra();
 	    while (!verticesGrauImparTemp.isEmpty()) {
 		for (Map.Entry<Aresta, CaminhoDijkstra> entry : dijkstras.entrySet()) {
 		    if (dijkstrasTemp.containsKey(entry.getKey())) {
@@ -241,76 +224,90 @@ public class CarteiroChines {
 		grafo.vertices.get(arestaInversa.vOrigem.nome).arestas.add(arestaInversa);
 	    }
 	}
-	return null;
-	// return getProximaArestaRemovida(grafo, aresta.vDestino);
+	// Como o grafo é dirigido nunca vai cair aqui
+	throw new RuntimeException("Erro ao eulerizar grafo.");
     }
 
     private boolean ehConexo(Grafo grafo) {
-	return getCiclosDisjuntos(grafo).size() <= 1;
+	return new CiclosDisjuntos(grafo).get().size() <= 1;
     }
 
-    private Map<Integer, Set<Character>> getCiclosDisjuntos(Grafo grafo) {
-	Map<Integer, Set<Character>> conjuntosDisjuntos = new HashMap<>();
-	for (Vertice vertice : grafo) {
-	    if (!vertice.arestas.isEmpty()) {
-		for (Aresta aresta : vertice) {
-		    addAresta(conjuntosDisjuntos, aresta);
-		}
-	    }
-	}
-	return conjuntosDisjuntos;
-    }
-
-    private void addAresta(Map<Integer, Set<Character>> conjuntosDisjuntos, Aresta aresta) {
-	if (conjuntosDisjuntos.isEmpty()) {
-	    addConjunto(conjuntosDisjuntos, aresta);
-	} else {
-	    Stream<Entry<Integer, Set<Character>>> filter = conjuntosDisjuntos.entrySet().stream()
-		    .filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
-	    long count = filter.count();
-	    if (count == 2) {
-		filter = conjuntosDisjuntos.entrySet().stream().filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
-		Iterator<Entry<Integer, Set<Character>>> iterator = filter.iterator();
-		Entry<Integer, Set<Character>> e1 = iterator.next();
-		Entry<Integer, Set<Character>> e2 = iterator.next();
-		e1.getValue().addAll(e2.getValue());
-		conjuntosDisjuntos.remove(e2.getKey());
-	    } else if (count == 1) {
-		filter = conjuntosDisjuntos.entrySet().stream().filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
-		Set<Character> c = filter.iterator().next().getValue();
-		if (c.contains(aresta.vOrigem.nome)) {
-		    c.add(aresta.vDestino.nome);
-		} else if (c.contains(aresta.vDestino.nome)) {
-		    c.add(aresta.vOrigem.nome);
-		}
-	    } else {
-		addConjunto(conjuntosDisjuntos, aresta);
-	    }
-	}
-    }
-
-    private void addConjunto(Map<Integer, Set<Character>> conjuntosDisjuntos, Aresta aresta) {
-	Set<Character> conjunto = new LinkedHashSet<>();
-	conjunto.add(aresta.vOrigem.nome);
-	conjunto.add(aresta.vDestino.nome);
-	conjuntosDisjuntos.put(conjuntosDisjuntos.size() + 1, conjunto);
-    }
-
+    /**
+     * Remove o par de arestas equivalentes, ex: A->B exclui também B->A. Caso tenha arestas paralelas não haverá problema, pois quando é
+     * criado arestas paralelas ela é virtual e elas são tratadas com diferenciação pelo equals. Se removeu aresta normal de uma ponta,
+     * exclui na outra, removeu aresta virtual numa ponta, exclui a virtual na outra.
+     */
     private void removerAresta(Grafo grafo, Aresta aresta) {
+	// A->B
 	if (grafo.vertices.containsKey(aresta.vOrigem.nome)) {
 	    grafo.vertices.get(aresta.vOrigem.nome).arestas.removeIf(a -> a.equals(aresta));
 	}
+	// B->A
 	Aresta arestaInversa = aresta.getArestaDuplicada();
 	if (grafo.vertices.containsKey(arestaInversa.vOrigem.nome)) {
 	    grafo.vertices.get(arestaInversa.vOrigem.nome).arestas.removeIf(a -> a.equals(arestaInversa));
 	}
     }
 
+    private class CiclosDisjuntos {
+	private Grafo grafo;
+
+	public CiclosDisjuntos(Grafo grafo) {
+	    super();
+	    this.grafo = grafo;
+	}
+
+	private Map<Integer, Set<Character>> get() {
+	    Map<Integer, Set<Character>> conjuntosDisjuntos = new HashMap<>();
+	    for (Vertice vertice : grafo) {
+		if (!vertice.arestas.isEmpty()) {
+		    for (Aresta aresta : vertice) {
+			addAresta(conjuntosDisjuntos, aresta);
+		    }
+		}
+	    }
+	    return conjuntosDisjuntos;
+	}
+
+	private void addAresta(Map<Integer, Set<Character>> conjuntosDisjuntos, Aresta aresta) {
+	    if (conjuntosDisjuntos.isEmpty()) {
+		addConjunto(conjuntosDisjuntos, aresta);
+	    } else {
+		Stream<Entry<Integer, Set<Character>>> filter = conjuntosDisjuntos.entrySet().stream()
+			.filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
+		long count = filter.count();
+		if (count == 2) {
+		    filter = conjuntosDisjuntos.entrySet().stream().filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
+		    Iterator<Entry<Integer, Set<Character>>> iterator = filter.iterator();
+		    Entry<Integer, Set<Character>> e1 = iterator.next();
+		    Entry<Integer, Set<Character>> e2 = iterator.next();
+		    e1.getValue().addAll(e2.getValue());
+		    conjuntosDisjuntos.remove(e2.getKey());
+		} else if (count == 1) {
+		    filter = conjuntosDisjuntos.entrySet().stream().filter(c -> c.getValue().contains(aresta.vOrigem.nome) || c.getValue().contains(aresta.vDestino.nome));
+		    Set<Character> c = filter.iterator().next().getValue();
+		    if (c.contains(aresta.vOrigem.nome)) {
+			c.add(aresta.vDestino.nome);
+		    } else if (c.contains(aresta.vDestino.nome)) {
+			c.add(aresta.vOrigem.nome);
+		    }
+		} else {
+		    addConjunto(conjuntosDisjuntos, aresta);
+		}
+	    }
+	}
+
+	private void addConjunto(Map<Integer, Set<Character>> conjuntosDisjuntos, Aresta aresta) {
+	    Set<Character> conjunto = new LinkedHashSet<>();
+	    conjunto.add(aresta.vOrigem.nome);
+	    conjunto.add(aresta.vDestino.nome);
+	    conjuntosDisjuntos.put(conjuntosDisjuntos.size() + 1, conjunto);
+	}
+
+    }
+
     private static class Grafo implements Iterable<Vertice> {
 	private Map<Character, Vertice> vertices = new LinkedHashMap<>();
-
-	public Grafo() {
-	}
 
 	/**
 	 * Copy constructor
@@ -321,15 +318,23 @@ public class CarteiroChines {
 	    }
 	}
 
+	public Grafo() {
+	}
+
 	private void addVertice(Vertice vertice) {
 	    vertices.put(vertice.nome, vertice);
 	}
 
+	/**
+	 * Gera arestas virtuais Como o grafo é dirigido tem que criar dois pares no conjunto, porém se tratam da mesma aresta. Isso auxilia
+	 * a varredura do ciclo euleriano.
+	 */
 	private void duplicarAresta(Aresta aresta) {
+	    // A->B
 	    List<Aresta> arestas = vertices.get(aresta.vOrigem.nome).arestas;
 	    Aresta arestaDuplicada = arestas.stream().filter(a -> a.equals(aresta)).findFirst().get();
 	    arestas.add(new Aresta(arestaDuplicada).setVirtual(true));
-
+	    // B->A
 	    Aresta outraAresta = aresta.getArestaDuplicada();
 	    arestas = vertices.get(outraAresta.vOrigem.nome).arestas;
 	    arestaDuplicada = arestas.stream().filter(a -> a.equals(outraAresta)).findFirst().get();
@@ -355,7 +360,7 @@ public class CarteiroChines {
 
     }
 
-    private static class ConjuntoDeCaminhos implements Iterable<CaminhoDijkstra> {
+    private static class ConjuntoDeCaminhosDijkstra implements Iterable<CaminhoDijkstra> {
 	private List<CaminhoDijkstra> conjunto = new LinkedList<>();
 	private int custoTotal;
 
@@ -397,91 +402,6 @@ public class CarteiroChines {
 	@Override
 	public String toString() {
 	    return "CaminhoDijkstra [caminho=" + arestas + ", custoTotal=" + custoTotal + "]";
-	}
-
-    }
-
-    private static class Aresta {
-	private Vertice vOrigem;
-	private Vertice vDestino;
-	private int custo;
-	private boolean virtual = false;
-
-	/**
-	 * Copy constructor
-	 */
-	private Aresta(Aresta aresta) {
-	    vOrigem = new Vertice(aresta.vOrigem);
-	    vDestino = new Vertice(aresta.vDestino);
-	    custo = aresta.custo;
-	    virtual = aresta.virtual;
-	}
-
-	private Aresta(Vertice vOrigem, Vertice vDestino, int custo) {
-	    this.vOrigem = vOrigem;
-	    this.vDestino = vDestino;
-	    this.custo = custo;
-	}
-
-	private Aresta(Vertice vOrigem, Vertice vDestino, int custo, boolean virtual) {
-	    this.vOrigem = vOrigem;
-	    this.vDestino = vDestino;
-	    this.custo = custo;
-	    this.virtual = virtual;
-	}
-
-	private Aresta getArestaDuplicada() {
-	    return new Aresta(vDestino, vOrigem, custo, virtual);
-	}
-
-	private Aresta setVirtual(boolean virtual) {
-	    this.virtual = virtual;
-	    return this;
-	}
-
-	@Override
-	public int hashCode() {
-	    final int prime = 31;
-	    int result = 1;
-	    result = prime * result + custo;
-	    result = prime * result + ((vDestino == null) ? 0 : vDestino.hashCode());
-	    result = prime * result + ((vOrigem == null) ? 0 : vOrigem.hashCode());
-	    result = prime * result + (virtual ? 1231 : 1237);
-	    return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-	    if (this == obj)
-		return true;
-	    if (obj == null)
-		return false;
-	    if (getClass() != obj.getClass())
-		return false;
-	    Aresta other = (Aresta) obj;
-	    if (custo != other.custo)
-		return false;
-	    if (vDestino == null) {
-		if (other.vDestino != null)
-		    return false;
-	    } else if (!vDestino.equals(other.vDestino))
-		return false;
-	    if (vOrigem == null) {
-		if (other.vOrigem != null)
-		    return false;
-	    } else if (!vOrigem.equals(other.vOrigem))
-		return false;
-	    if (virtual != other.virtual)
-		return false;
-	    return true;
-	}
-
-	/**
-	 * Somente para debug
-	 */
-	@Override
-	public String toString() {
-	    return virtual ? "virtual " : "" + vOrigem.nome + "->" + vDestino.nome;
 	}
 
     }
@@ -597,17 +517,97 @@ public class CarteiroChines {
 
     }
 
+    private static class Aresta {
+	private Vertice vOrigem;
+	private Vertice vDestino;
+	private int custo;
+	private boolean virtual = false;
+
+	/**
+	 * Copy constructor
+	 */
+	private Aresta(Aresta aresta) {
+	    vOrigem = new Vertice(aresta.vOrigem);
+	    vDestino = new Vertice(aresta.vDestino);
+	    custo = aresta.custo;
+	    virtual = aresta.virtual;
+	}
+
+	private Aresta(Vertice vOrigem, Vertice vDestino, int custo) {
+	    this.vOrigem = vOrigem;
+	    this.vDestino = vDestino;
+	    this.custo = custo;
+	}
+
+	private Aresta(Vertice vOrigem, Vertice vDestino, int custo, boolean virtual) {
+	    this.vOrigem = vOrigem;
+	    this.vDestino = vDestino;
+	    this.custo = custo;
+	    this.virtual = virtual;
+	}
+
+	/**
+	 * Gera uma cópia inversa da aresta ex: A->B gera B->A. Isso auxilia a varredura do ciclo euleriano.
+	 */
+	private Aresta getArestaDuplicada() {
+	    return new Aresta(vDestino, vOrigem, custo, virtual);
+	}
+
+	private Aresta setVirtual(boolean virtual) {
+	    this.virtual = virtual;
+	    return this;
+	}
+
+	@Override
+	public int hashCode() {
+	    final int prime = 31;
+	    int result = 1;
+	    result = prime * result + custo;
+	    result = prime * result + ((vDestino == null) ? 0 : vDestino.hashCode());
+	    result = prime * result + ((vOrigem == null) ? 0 : vOrigem.hashCode());
+	    result = prime * result + (virtual ? 1231 : 1237);
+	    return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+	    if (this == obj)
+		return true;
+	    if (obj == null)
+		return false;
+	    if (getClass() != obj.getClass())
+		return false;
+	    Aresta other = (Aresta) obj;
+	    if (custo != other.custo)
+		return false;
+	    if (vDestino == null) {
+		if (other.vDestino != null)
+		    return false;
+	    } else if (!vDestino.equals(other.vDestino))
+		return false;
+	    if (vOrigem == null) {
+		if (other.vOrigem != null)
+		    return false;
+	    } else if (!vOrigem.equals(other.vOrigem))
+		return false;
+	    if (virtual != other.virtual)
+		return false;
+	    return true;
+	}
+
+	/**
+	 * Somente para debug
+	 */
+	@Override
+	public String toString() {
+	    return virtual ? "virtual " : "" + vOrigem.nome + "->" + vDestino.nome;
+	}
+
+    }
+
     private static class Vertice implements Iterable<Aresta> {
 	private char nome;
 	private List<Aresta> arestas = new LinkedList<>();
-
-	private Vertice(int posicao) {
-	    this.nome = getNome(posicao);
-	}
-
-	private Vertice(char nome) {
-	    this.nome = nome;
-	}
 
 	/**
 	 * Copy constructor
@@ -617,6 +617,14 @@ public class CarteiroChines {
 	    for (Aresta aresta : vertice) {
 		arestas.add(aresta);
 	    }
+	}
+
+	private Vertice(int posicao) {
+	    this.nome = getNome(posicao);
+	}
+
+	private Vertice(char nome) {
+	    this.nome = nome;
 	}
 
 	private int getPosicao() {

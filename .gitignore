@@ -5,3 +5,12 @@
 /CarteiroChines$Vertice.class
 /CarteiroChines.class
 /CarteiroChines$Grafo.class
+/CarteiroChines$ConjuntoDeCaminhosDijkstra.class
+/CarteiroChines$CiclosDisjuntos.class
+/Aresta.class
+/CaminhoDijkstra.class
+/CiclosDisjuntos.class
+/ConjuntoDeCaminhosDijkstra.class
+/Dijkstra.class
+/Grafo.class
+/Vertice.class
